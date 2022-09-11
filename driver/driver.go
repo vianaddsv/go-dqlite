@@ -27,12 +27,14 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/canonical/go-dqlite/client"
+	"github.com/canonical/go-dqlite/logging"
+
 	"github.com/canonical/go-dqlite/internal/protocol"
 )
 
 // Driver perform queries against a dqlite server.
 type Driver struct {
-	log               client.LogFunc   // Log function to use
+	log               logging.LogFunc  // Log function to use
 	store             client.NodeStore // Holds addresses of dqlite servers
 	context           context.Context  // Global cancellation context
 	connectionTimeout time.Duration    // Max time to wait for a new connection
@@ -76,7 +78,7 @@ type NodeInfo = client.NodeInfo
 var DefaultNodeStore = client.DefaultNodeStore
 
 // WithLogFunc sets a custom logging function.
-func WithLogFunc(log client.LogFunc) Option {
+func WithLogFunc(log logging.LogFunc) Option {
 	return func(options *options) {
 		options.Log = log
 	}
@@ -208,7 +210,7 @@ func New(store client.NodeStore, options ...Option) (*Driver, error) {
 
 // Hold configuration options for a dqlite driver.
 type options struct {
-	Log                     client.LogFunc
+	Log                     logging.LogFunc
 	Dial                    protocol.DialFunc
 	AttemptTimeout          time.Duration
 	ConnectionTimeout       time.Duration
@@ -223,7 +225,7 @@ type options struct {
 // Create a options object with sane defaults.
 func defaultOptions() *options {
 	return &options{
-		Log:     client.DefaultLogFunc,
+		Log:     logging.DefaultLogFunc,
 		Dial:    client.DefaultDialFunc,
 		Tracing: client.LogNone,
 	}
@@ -248,11 +250,13 @@ func (c *Connector) Connect(ctx context.Context) (driver.Conn, error) {
 		defer cancel()
 	}
 
+	loggingFunc := logging.AdapterLogFunction(c.driver.log)
+
 	// TODO: generate a client ID.
-	connector := protocol.NewConnector(0, c.driver.store, c.driver.clientConfig, c.driver.log)
+	connector := protocol.NewConnector(0, c.driver.store, c.driver.clientConfig, loggingFunc)
 
 	conn := &Conn{
-		log:            c.driver.log,
+		log:            loggingFunc,
 		contextTimeout: c.driver.contextTimeout,
 		tracing:        c.driver.tracing,
 	}

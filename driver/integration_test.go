@@ -11,7 +11,7 @@ import (
 	dqlite "github.com/canonical/go-dqlite"
 	"github.com/canonical/go-dqlite/client"
 	"github.com/canonical/go-dqlite/driver"
-	"github.com/canonical/go-dqlite/internal/logging"
+	"github.com/canonical/go-dqlite/logging"
 	"github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -299,7 +299,10 @@ func TestOptions(t *testing.T) {
 	// make sure applying all options doesn't break anything
 	store, err := client.DefaultNodeStore(":memory:")
 	require.NoError(t, err)
-	log := logging.Test(t)
+	log := func(l logging.LogLevel, format string, a ...interface{}) {
+		format = fmt.Sprintf("%s: %s", l.String(), format)
+		t.Logf(format, a...)
+	}
 	_, err = driver.New(
 		store,
 		driver.WithLogFunc(log),
@@ -332,8 +335,10 @@ func newDBWithInfos(t *testing.T, infos []client.NodeInfo) (*sql.DB, []*nodeHelp
 
 	require.NoError(t, store.Set(context.Background(), infos))
 
-	log := logging.Test(t)
-
+	log := func(l logging.LogLevel, format string, a ...interface{}) {
+		format = fmt.Sprintf("%s: %s", l.String(), format)
+		t.Logf(format, a...)
+	}
 	driver, err := driver.New(store, driver.WithLogFunc(log))
 	require.NoError(t, err)
 

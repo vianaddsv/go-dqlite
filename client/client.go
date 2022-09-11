@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/canonical/go-dqlite/internal/protocol"
+	"github.com/canonical/go-dqlite/logging"
 	"github.com/pkg/errors"
 )
 
@@ -20,7 +21,7 @@ type Option func(*options)
 
 type options struct {
 	DialFunc DialFunc
-	LogFunc  LogFunc
+	LogFunc  logging.LogFunc
 }
 
 // WithDialFunc sets a custom dial function for creating the client network
@@ -33,7 +34,7 @@ func WithDialFunc(dial DialFunc) Option {
 
 // WithLogFunc sets a custom log function.
 // connection.
-func WithLogFunc(log LogFunc) Option {
+func WithLogFunc(log logging.LogFunc) Option {
 	return func(options *options) {
 		options.LogFunc = log
 	}
@@ -314,6 +315,6 @@ func (c *Client) Close() error {
 func defaultOptions() *options {
 	return &options{
 		DialFunc: DefaultDialFunc,
-		LogFunc:  DefaultLogFunc,
+		LogFunc:  logging.DefaultLogFunc,
 	}
 }

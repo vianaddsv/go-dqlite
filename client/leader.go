@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/canonical/go-dqlite/internal/protocol"
+	"github.com/canonical/go-dqlite/logging"
 )
 
 // FindLeader returns a Client connected to the current cluster leader.
@@ -22,7 +23,8 @@ func FindLeader(ctx context.Context, store NodeStore, options ...Option) (*Clien
 	config := protocol.Config{
 		Dial: o.DialFunc,
 	}
-	connector := protocol.NewConnector(0, store, config, o.LogFunc)
+
+	connector := protocol.NewConnector(0, store, config, logging.AdapterLogFunction(o.LogFunc))
 	protocol, err := connector.Connect(ctx)
 	if err != nil {
 		return nil, err

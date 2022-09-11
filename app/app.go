@@ -15,6 +15,7 @@ import (
 	"github.com/canonical/go-dqlite/client"
 	"github.com/canonical/go-dqlite/driver"
 	"github.com/canonical/go-dqlite/internal/protocol"
+	"github.com/canonical/go-dqlite/logging"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/semaphore"
 )
@@ -36,7 +37,7 @@ type App struct {
 	store           client.NodeStore
 	driver          *driver.Driver
 	driverName      string
-	log             client.LogFunc
+	log             logging.LogFunc
 	ctx             context.Context
 	stop            context.CancelFunc // Signal App.run() to stop.
 	proxyCh         chan struct{}      // Waits for App.proxy() to return.
@@ -695,19 +696,19 @@ func (a *App) clientOptions() []client.Option {
 }
 
 func (a *App) debug(format string, args ...interface{}) {
-	a.log(client.LogDebug, format, args...)
+	a.log(logging.LogDebug, format, args...)
 }
 
 func (a *App) info(format string, args ...interface{}) {
-	a.log(client.LogInfo, format, args...)
+	a.log(logging.LogInfo, format, args...)
 }
 
 func (a *App) warn(format string, args ...interface{}) {
-	a.log(client.LogWarn, format, args...)
+	a.log(logging.LogWarn, format, args...)
 }
 
 func (a *App) error(format string, args ...interface{}) {
-	a.log(client.LogError, format, args...)
+	a.log(logging.LogError, format, args...)
 }
 
 var driverIndex = 0

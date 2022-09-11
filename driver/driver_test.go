@@ -17,6 +17,7 @@ package driver_test
 import (
 	"context"
 	"database/sql/driver"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -26,7 +27,7 @@ import (
 	dqlite "github.com/canonical/go-dqlite"
 	"github.com/canonical/go-dqlite/client"
 	dqlitedriver "github.com/canonical/go-dqlite/driver"
-	"github.com/canonical/go-dqlite/internal/logging"
+	"github.com/canonical/go-dqlite/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -574,7 +575,10 @@ func newDriver(t *testing.T) (*dqlitedriver.Driver, func()) {
 
 	store := newStore(t, "@1")
 
-	log := logging.Test(t)
+	log := func(l logging.LogLevel, format string, a ...interface{}) {
+		format = fmt.Sprintf("%s: %s", l.String(), format)
+		t.Logf(format, a...)
+	}
 
 	driver, err := dqlitedriver.New(store, dqlitedriver.WithLogFunc(log))
 	require.NoError(t, err)

@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/canonical/go-dqlite/app"
-	"github.com/canonical/go-dqlite/client"
+	"github.com/canonical/go-dqlite/logging"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
@@ -37,7 +37,7 @@ Complete documentation is available at https://github.com/canonical/go-dqlite`,
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				return errors.Wrapf(err, "can't create %s", dir)
 			}
-			logFunc := func(l client.LogLevel, format string, a ...interface{}) {
+			logFunc := func(l logging.Level, format string, a ...interface{}) {
 				if !verbose {
 					return
 				}

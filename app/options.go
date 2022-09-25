@@ -10,6 +10,7 @@ import (
 
 	"github.com/canonical/go-dqlite"
 	"github.com/canonical/go-dqlite/client"
+	"github.com/canonical/go-dqlite/logging"
 )
 
 // Option can be used to tweak app parameters.
@@ -142,7 +143,7 @@ func WithRolesAdjustmentFrequency(frequency time.Duration) Option {
 }
 
 // WithLogFunc sets a custom log function.
-func WithLogFunc(log client.LogFunc) Option {
+func WithLogFunc(log logging.Func) Option {
 	return func(options *options) {
 		options.Log = log
 	}
@@ -185,7 +186,7 @@ type connSetup struct {
 type options struct {
 	Address                  string
 	Cluster                  []string
-	Log                      client.LogFunc
+	Log                      logging.Func
 	TLS                      *tlsSetup
 	Conn                     *connSetup
 	Voters                   int
@@ -214,18 +215,18 @@ func isLoopback(iface *net.Interface) bool {
 // see https://stackoverflow.com/a/48519490/3613657
 // Valid IPv4 notations:
 //
-//    "192.168.0.1": basic
-//    "192.168.0.1:80": with port info
+//	"192.168.0.1": basic
+//	"192.168.0.1:80": with port info
 //
 // Valid IPv6 notations:
 //
-//    "::FFFF:C0A8:1": basic
-//    "::FFFF:C0A8:0001": leading zeros
-//    "0000:0000:0000:0000:0000:FFFF:C0A8:1": double colon expanded
-//    "::FFFF:C0A8:1%1": with zone info
-//    "::FFFF:192.168.0.1": IPv4 literal
-//    "[::FFFF:C0A8:1]:80": with port info
-//    "[::FFFF:C0A8:1%1]:80": with zone and port info
+//	"::FFFF:C0A8:1": basic
+//	"::FFFF:C0A8:0001": leading zeros
+//	"0000:0000:0000:0000:0000:FFFF:C0A8:1": double colon expanded
+//	"::FFFF:C0A8:1%1": with zone info
+//	"::FFFF:192.168.0.1": IPv4 literal
+//	"[::FFFF:C0A8:1]:80": with port info
+//	"[::FFFF:C0A8:1%1]:80": with zone and port info
 func isIpV4(ip string) bool {
 	return strings.Count(ip, ":") < 2
 }
@@ -261,9 +262,9 @@ func defaultAddress() (addr string, err error) {
 	return "", fmt.Errorf("no suitable net.Interface found: %v", err)
 }
 
-func defaultLogFunc(l client.LogLevel, format string, a ...interface{}) {
+func defaultLogFunc(l logging.Level, format string, a ...interface{}) {
 	// Log only error messages
-	if l != client.LogError {
+	if l != logging.Error {
 		return
 	}
 	msg := fmt.Sprintf("["+l.String()+"]"+" dqlite: "+format, a...)

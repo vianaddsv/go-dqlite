@@ -20,6 +20,7 @@ import (
 	"github.com/canonical/go-dqlite"
 	"github.com/canonical/go-dqlite/app"
 	"github.com/canonical/go-dqlite/client"
+	"github.com/canonical/go-dqlite/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1033,7 +1034,7 @@ func newAppWithDir(t *testing.T, dir string, options ...app.Option) (*app.App, f
 	appIndex++
 
 	index := appIndex
-	log := func(l client.LogLevel, format string, a ...interface{}) {
+	log := func(l logging.Level, format string, a ...interface{}) {
 		format = fmt.Sprintf("%s - %d: %s: %s", time.Now().Format("15:04:01.000"), index, l.String(), format)
 		t.Logf(format, a...)
 	}
@@ -1058,7 +1059,7 @@ func newAppWithNoTLS(t *testing.T, options ...app.Option) (*app.App, func()) {
 	appIndex++
 
 	index := appIndex
-	log := func(l client.LogLevel, format string, a ...interface{}) {
+	log := func(l logging.Level, format string, a ...interface{}) {
 		format = fmt.Sprintf("%s - %d: %s: %s", time.Now().Format("15:04:01.000"), index, l.String(), format)
 		t.Logf(format, a...)
 	}

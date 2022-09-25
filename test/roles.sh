@@ -25,6 +25,7 @@ import (
     "path/filepath"
     "strconv"
     "github.com/canonical/go-dqlite/client"
+    "github.com/canonical/go-dqlite/logging"
     "github.com/canonical/go-dqlite/app"
     "golang.org/x/sys/unix"
 )
@@ -36,7 +37,7 @@ func main() {
      dir := filepath.Join("$DIR", os.Args[1])
      index, _ := strconv.Atoi(os.Args[1])
      verbose := $VERBOSE
-     logFunc := func(l client.LogLevel, format string, a ...interface{}) {
+     logFunc := func(l logging.Level, format string, a ...interface{}) {
          if verbose != 1 {
              return
          }

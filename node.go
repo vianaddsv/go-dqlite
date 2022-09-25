@@ -6,12 +6,13 @@ import (
 
 	"github.com/canonical/go-dqlite/client"
 	"github.com/canonical/go-dqlite/internal/bindings"
+	"github.com/canonical/go-dqlite/logging"
 	"github.com/pkg/errors"
 )
 
 // Node runs a dqlite node.
 type Node struct {
-	log         client.LogFunc // Logger
+	log         logging.Func   // Logger
 	server      *bindings.Node // Low-level C implementation
 	acceptCh    chan error     // Receives connection handling errors
 	id          uint64
@@ -147,7 +148,7 @@ func (s *Node) Recover(cluster []NodeInfo) error {
 
 // Hold configuration options for a dqlite server.
 type options struct {
-	Log            client.LogFunc
+	Log            logging.Func
 	DialFunc       client.DialFunc
 	BindAddress    string
 	NetworkLatency uint64

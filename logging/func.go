@@ -24,3 +24,6 @@ func Stdout() Func {
 		fmt.Printf(format, a...)
 	}
 }
+
+// DefaultLogFunc doesn't emit any message.
+func DefaultLogFunc(l Level, format string, a ...interface{}) {}

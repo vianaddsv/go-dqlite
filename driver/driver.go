@@ -28,17 +28,18 @@ import (
 
 	"github.com/canonical/go-dqlite/client"
 	"github.com/canonical/go-dqlite/internal/protocol"
+	"github.com/canonical/go-dqlite/logging"
 )
 
 // Driver perform queries against a dqlite server.
 type Driver struct {
-	log               client.LogFunc   // Log function to use
+	log               logging.Func     // Log function to use
 	store             client.NodeStore // Holds addresses of dqlite servers
 	context           context.Context  // Global cancellation context
 	connectionTimeout time.Duration    // Max time to wait for a new connection
 	contextTimeout    time.Duration    // Default client context timeout.
 	clientConfig      protocol.Config  // Configuration for dqlite client instances
-	tracing           client.LogLevel  // Whether to trace statements
+	tracing           logging.Level    // Whether to trace statements
 }
 
 // Error is returned in case of database errors.
@@ -76,7 +77,7 @@ type NodeInfo = client.NodeInfo
 var DefaultNodeStore = client.DefaultNodeStore
 
 // WithLogFunc sets a custom logging function.
-func WithLogFunc(log client.LogFunc) Option {
+func WithLogFunc(log logging.Func) Option {
 	return func(options *options) {
 		options.Log = log
 	}
@@ -172,7 +173,7 @@ func WithContextTimeout(timeout time.Duration) Option {
 
 // WithTracing will emit a log message at the given level every time a
 // statement gets executed.
-func WithTracing(level client.LogLevel) Option {
+func WithTracing(level logging.Level) Option {
 	return func(options *options) {
 		options.Tracing = level
 	}
@@ -208,7 +209,7 @@ func New(store client.NodeStore, options ...Option) (*Driver, error) {
 
 // Hold configuration options for a dqlite driver.
 type options struct {
-	Log                     client.LogFunc
+	Log                     logging.Func
 	Dial                    protocol.DialFunc
 	AttemptTimeout          time.Duration
 	ConnectionTimeout       time.Duration
@@ -217,15 +218,15 @@ type options struct {
 	ConnectionBackoffCap    time.Duration
 	RetryLimit              uint
 	Context                 context.Context
-	Tracing                 client.LogLevel
+	Tracing                 logging.Level
 }
 
 // Create a options object with sane defaults.
 func defaultOptions() *options {
 	return &options{
-		Log:     client.DefaultLogFunc,
+		Log:     logging.DefaultLogFunc,
 		Dial:    client.DefaultDialFunc,
-		Tracing: client.LogNone,
+		Tracing: logging.None,
 	}
 }
 
@@ -328,13 +329,13 @@ var ErrNoAvailableLeader = protocol.ErrNoAvailableLeader
 
 // Conn implements the sql.Conn interface.
 type Conn struct {
-	log            client.LogFunc
+	log            logging.Func
 	protocol       *protocol.Protocol
 	request        protocol.Message
 	response       protocol.Message
 	id             uint32 // Database ID.
 	contextTimeout time.Duration
-	tracing        client.LogLevel
+	tracing        logging.Level
 }
 
 // PrepareContext returns a prepared statement, bound to this connection.
@@ -361,7 +362,7 @@ func (c *Conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, e
 		return nil, driverError(c.log, err)
 	}
 
-	if c.tracing != client.LogNone {
+	if c.tracing != logging.None {
 		stmt.sql = query
 	}
 
@@ -390,7 +391,7 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 		return nil, driverError(c.log, err)
 	}
 
-	if c.tracing != client.LogNone {
+	if c.tracing != logging.None {
 		c.log(c.tracing, "exec: %s", query)
 	}
 
@@ -419,7 +420,7 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 		return nil, driverError(c.log, err)
 	}
 
-	if c.tracing != client.LogNone {
+	if c.tracing != logging.None {
 		c.log(c.tracing, "query: %s", query)
 	}
 
@@ -491,7 +492,7 @@ func (c *Conn) Begin() (driver.Tx, error) {
 // Tx is a transaction.
 type Tx struct {
 	conn *Conn
-	log  client.LogFunc
+	log  logging.Func
 }
 
 // Commit the transaction.
@@ -525,9 +526,9 @@ type Stmt struct {
 	db       uint32
 	id       uint32
 	params   uint64
-	log      client.LogFunc
+	log      logging.Func
 	sql      string // Prepared SQL, only set when tracing
-	tracing  client.LogLevel
+	tracing  logging.Level
 }
 
 // Close closes the statement.
@@ -572,7 +573,7 @@ func (s *Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (drive
 		return nil, driverError(s.log, err)
 	}
 
-	if s.tracing != client.LogNone {
+	if s.tracing != logging.None {
 		s.log(s.tracing, "exec prepared: %s", s.sql)
 	}
 
@@ -604,7 +605,7 @@ func (s *Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driv
 		return nil, driverError(s.log, err)
 	}
 
-	if s.tracing != client.LogNone {
+	if s.tracing != logging.None {
 		s.log(s.tracing, "query prepared: %s", s.sql)
 	}
 
@@ -643,7 +644,7 @@ type Rows struct {
 	rows     protocol.Rows
 	consumed bool
 	types    []string
-	log      client.LogFunc
+	log      logging.Func
 }
 
 // Columns returns the names of the columns. The number of
@@ -731,7 +732,7 @@ func (r *Rows) ColumnTypeDatabaseTypeName(i int) string {
 			// as an empty column type is not the end of the world
 			// but we should still inform the user of the failure
 			const msg = "row (%p) error returning column #%d type: %v\n"
-			r.log(client.LogWarn, msg, r, i, err)
+			r.log(logging.Warn, msg, r, i, err)
 			return ""
 		}
 	}
@@ -754,13 +755,13 @@ type unwrappable interface {
 	Unwrap() error
 }
 
-func driverError(log client.LogFunc, err error) error {
+func driverError(log logging.Func, err error) error {
 	switch err := errors.Cause(err).(type) {
 	case syscall.Errno:
-		log(client.LogDebug, "network connection lost: %v", err)
+		log(logging.Debug, "network connection lost: %v", err)
 		return driver.ErrBadConn
 	case *net.OpError:
-		log(client.LogDebug, "network connection lost: %v", err)
+		log(logging.Debug, "network connection lost: %v", err)
 		return driver.ErrBadConn
 	case protocol.ErrRequest:
 		switch err.Code {
@@ -771,10 +772,10 @@ func driverError(log client.LogFunc, err error) error {
 		case errIoErrNotLeader:
 			fallthrough
 		case errIoErrLeadershipLost:
-			log(client.LogDebug, "leadership lost (%d - %s)", err.Code, err.Description)
+			log(logging.Debug, "leadership lost (%d - %s)", err.Code, err.Description)
 			return driver.ErrBadConn
 		case errNotFound:
-			log(client.LogDebug, "not found - potentially after leadership loss (%d - %s)", err.Code, err.Description)
+			log(logging.Debug, "not found - potentially after leadership loss (%d - %s)", err.Code, err.Description)
 			return driver.ErrBadConn
 		default:
 			// FIXME: the server side sometimes return SQLITE_OK
@@ -782,7 +783,7 @@ func driverError(log client.LogFunc, err error) error {
 			// investigated, but for now let's just mark this
 			// connection as bad so the client will retry.
 			if err.Code == 0 {
-				log(client.LogWarn, "unexpected error code (%d - %s)", err.Code, err.Description)
+				log(logging.Warn, "unexpected error code (%d - %s)", err.Code, err.Description)
 				return driver.ErrBadConn
 			}
 			return Error{
@@ -800,7 +801,7 @@ func driverError(log client.LogFunc, err error) error {
 		}
 		switch err.(type) {
 		case *net.OpError:
-			log(client.LogDebug, "network connection lost: %v", err)
+			log(logging.Debug, "network connection lost: %v", err)
 			return driver.ErrBadConn
 		}
 	}
